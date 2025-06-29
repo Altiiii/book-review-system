@@ -38,15 +38,23 @@ router.post('/', verifyToken, async (req, res) => {
 
 router.put('/:id', verifyToken, async (req, res) => {
   try {
-    const { title, author, publishedYear, genre, summary } = req.body;
+    // Merr versionin __v nga body bashkë me fushat tjera që do ndryshohen
+    const { title, author, publishedYear, genre, summary, __v } = req.body;
 
-    const updatedBook = await Book.findByIdAndUpdate(
-      req.params.id,
-      { title, author, publishedYear, genre, summary },
+    if (__v === undefined) {
+      return res.status(400).json({ message: 'Version (__v) is required for concurrency control' });
+    }
+
+    // Përpiq të gjesh dhe përditësosh libër me versionin që ka dërguar klienti
+    const updatedBook = await Book.findOneAndUpdate(
+      { _id: req.params.id, __v: __v },  // kërko libër me versionin specifik
+      { title, author, publishedYear, genre, summary, $inc: { __v: 1 } },  // update dhe rrit __v
       { new: true, runValidators: true }
     );
 
-    if (!updatedBook) return res.status(404).json({ message: 'Book not found' });
+    if (!updatedBook) {
+      return res.status(409).json({ message: 'Conflict: Book was updated by someone else. Please reload and try again.' });
+    }
 
     res.json(updatedBook);
   } catch (err) {
@@ -54,6 +62,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 // DELETE /api/books/:id — Fshin një libër
 router.delete('/:id', verifyToken, async (req, res) => {

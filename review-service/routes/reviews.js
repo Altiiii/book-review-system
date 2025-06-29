@@ -57,27 +57,34 @@ router.post('/', verifyToken, async (req, res) => {
 
 // PUT /api/reviews/:id — Përditëson një recension
 router.put('/:id', verifyToken, async (req, res) => {
-    try {
-      const { rating, comment } = req.body;
-  
-      const review = await Review.findById(req.params.id);
-      if (!review) return res.status(404).json({ message: 'Review not found' });
-  
-      // Siguro që vetëm autori mund të ndryshojë recensionin
-      if (review.userId.toString() !== req.user.userId) {
-        return res.status(403).json({ message: 'Unauthorized to update this review' });
-      }
-  
-      review.rating = rating;
-      review.comment = comment;
-      await review.save();
-  
-      res.json(review);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: 'Server error' });
+  try {
+    const { rating, comment, __v } = req.body;  // marrim versionin nga klienti
+
+    const review = await Review.findById(req.params.id);
+    if (!review) return res.status(404).json({ message: 'Review not found' });
+
+    // Kontrollo nëse versioni përputhet me atë të DB (optimistic locking)
+    if (__v === undefined || review.__v !== __v) {
+      return res.status(409).json({ message: 'Conflict: Review has been updated by another user' });
     }
-  });
+
+    // Kontrollo që vetëm autori të bëjë ndryshime
+    if (review.userId.toString() !== req.user.userId) {
+      return res.status(403).json({ message: 'Unauthorized to update this review' });
+    }
+
+    review.rating = rating;
+    review.comment = comment;
+    review.__v = review.__v + 1; // rrisim versionin
+    await review.save();
+
+    res.json(review);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
   
   // DELETE /api/reviews/:id — Fshin një recension
   router.delete('/:id', verifyToken, async (req, res) => {
@@ -97,5 +104,15 @@ router.put('/:id', verifyToken, async (req, res) => {
       res.status(500).json({ message: 'Server error' });
     }
   });
+
+  router.get('/all', async (req, res) => {
+    try {
+      const reviews = await Review.find();
+      res.json(reviews);
+    } catch (err) {
+      res.status(500).json({ message: 'Error fetching all reviews' });
+    }
+  });
+  
 
 module.exports = router;
