@@ -7,8 +7,7 @@ const verifyToken = require('../middleware/auth');
 
 const BOOK_SERVICE_URL = process.env.BOOK_SERVICE_URL || 'http://localhost:5001';
 
-// GET /api/reviews?bookId=BOOK_ID
-// routes/reviews.js (GET /api/reviews)
+
 router.get('/', async (req, res) => {
     try {
       const { bookId } = req.query;
@@ -21,7 +20,6 @@ router.get('/', async (req, res) => {
   
       const objectId = new mongoose.Types.ObjectId(bookId);
   
-      // **Pa populate**
       const reviews = await Review.find({ bookId: objectId });
   
       res.json(reviews);
@@ -33,13 +31,11 @@ router.get('/', async (req, res) => {
   
   
 
-// POST /api/reviews — krijon recension, kërkon token
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { bookId, rating, comment } = req.body;
     const userId = req.user.userId;
 
-    // Opsionale: Kontrollo në Book Service nëse libri ekziston
     try {
       await axios.get(`${BOOK_SERVICE_URL}/api/books/${bookId}`);
     } catch (error) {
@@ -55,27 +51,24 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// PUT /api/reviews/:id — Përditëson një recension
 router.put('/:id', verifyToken, async (req, res) => {
   try {
-    const { rating, comment, __v } = req.body;  // marrim versionin nga klienti
+    const { rating, comment, __v } = req.body;  
 
     const review = await Review.findById(req.params.id);
     if (!review) return res.status(404).json({ message: 'Review not found' });
 
-    // Kontrollo nëse versioni përputhet me atë të DB (optimistic locking)
     if (__v === undefined || review.__v !== __v) {
       return res.status(409).json({ message: 'Conflict: Review has been updated by another user' });
     }
 
-    // Kontrollo që vetëm autori të bëjë ndryshime
     if (review.userId.toString() !== req.user.userId) {
       return res.status(403).json({ message: 'Unauthorized to update this review' });
     }
 
     review.rating = rating;
     review.comment = comment;
-    review.__v = review.__v + 1; // rrisim versionin
+    review.__v = review.__v + 1; 
     await review.save();
 
     res.json(review);
@@ -86,13 +79,11 @@ router.put('/:id', verifyToken, async (req, res) => {
 });
 
   
-  // DELETE /api/reviews/:id — Fshin një recension
   router.delete('/:id', verifyToken, async (req, res) => {
     try {
       const review = await Review.findById(req.params.id);
       if (!review) return res.status(404).json({ message: 'Review not found' });
   
-      // Siguro që vetëm autori mund ta fshijë recensionin
       if (review.userId.toString() !== req.user.userId) {
         return res.status(403).json({ message: 'Unauthorized to delete this review' });
       }

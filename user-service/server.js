@@ -7,14 +7,12 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-// Lidhje me MongoDB
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => console.log('✅ Connected to MongoDB'))
   .catch((err) => console.error('❌ MongoDB error:', err));
 
-// Routes
 app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => {

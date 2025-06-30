@@ -3,7 +3,6 @@ const router = express.Router();
 const Book = require('../models/Book');
 const verifyToken = require('../middleware/auth');
 
-// GET /api/books — kthen të gjitha librat (publik)
 router.get('/', async (req, res) => {
   try {
     const books = await Book.find();
@@ -13,7 +12,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/books/:id — kthen libër sipas id-së
 router.get('/:id', async (req, res) => {
   try {
     const book = await Book.findById(req.params.id);
@@ -24,7 +22,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/books — krijon libër të ri (vetëm përdorues të autorizuar)
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { title, author, publishedYear, genre, summary } = req.body;
@@ -38,17 +35,15 @@ router.post('/', verifyToken, async (req, res) => {
 
 router.put('/:id', verifyToken, async (req, res) => {
   try {
-    // Merr versionin __v nga body bashkë me fushat tjera që do ndryshohen
     const { title, author, publishedYear, genre, summary, __v } = req.body;
 
     if (__v === undefined) {
       return res.status(400).json({ message: 'Version (__v) is required for concurrency control' });
     }
 
-    // Përpiq të gjesh dhe përditësosh libër me versionin që ka dërguar klienti
     const updatedBook = await Book.findOneAndUpdate(
-      { _id: req.params.id, __v: __v },  // kërko libër me versionin specifik
-      { title, author, publishedYear, genre, summary, $inc: { __v: 1 } },  // update dhe rrit __v
+      { _id: req.params.id, __v: __v },  
+      { title, author, publishedYear, genre, summary, $inc: { __v: 1 } }, 
       { new: true, runValidators: true }
     );
 
@@ -64,7 +59,6 @@ router.put('/:id', verifyToken, async (req, res) => {
 });
 
 
-// DELETE /api/books/:id — Fshin një libër
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
     const deletedBook = await Book.findByIdAndDelete(req.params.id);

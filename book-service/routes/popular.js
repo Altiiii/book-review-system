@@ -7,16 +7,12 @@ const REVIEW_SERVICE_URL = process.env.REVIEW_SERVICE_URL || 'https://review-ser
 
 const axios = require('axios');
 
-// GET /api/books/popular
 router.get('/popular', async (req, res) => {
   try {
-    // Merr të gjitha librat
     const books = await Book.find();
 
-    // Merr të gjitha recensionet nga Review Service
     const { data: allReviews } = await axios.get(`${REVIEW_SERVICE_URL}/all`);
 
-    // Llogarit popullaritetin për çdo libër
     const bookStats = books.map(book => {
       const reviewsForBook = allReviews.filter(r => r.bookId === book._id.toString());
       const totalReviews = reviewsForBook.length;
@@ -29,7 +25,6 @@ router.get('/popular', async (req, res) => {
       };
     });
 
-    // Rendit sipas numrit të recensioneve + rating mesatar
     const sorted = bookStats.sort((a, b) => b.totalReviews - a.totalReviews || b.avgRating - a.avgRating);
 
     res.json(sorted);
