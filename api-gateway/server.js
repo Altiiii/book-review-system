@@ -17,13 +17,10 @@ app.use(cors({
 app.use(express.json());
 
 
-// Rrugët e auth (publike)
 app.use('/api/auth', authRoutes);
 
-// Rrugët e librave (me middleware që kontrollon token vetëm për POST/PUT/DELETE)
 app.use('/api/books', verifyTokenIfNeeded, bookRoutes);
 
-// Rrugët e recensioneve (me middleware që kontrollon token vetëm për POST/PUT/DELETE)
 app.use('/api/reviews', verifyTokenIfNeeded, reviewRoutes);
 
 const PORT = process.env.PORT || 3000;

@@ -24,7 +24,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST me token
 router.post('/', async (req, res) => {
   try {
     const response = await axios.post(`${BOOK_SERVICE_URL}/api/books`, req.body, {
